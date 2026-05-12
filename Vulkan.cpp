@@ -623,6 +623,7 @@ VkFence inFlightFence;
 
 int main(){
     vulkan v;
+    // kal likhugi py
     return 0;
 }
 
