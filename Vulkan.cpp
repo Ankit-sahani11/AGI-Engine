@@ -13,6 +13,7 @@ VkInstance instance;// instance store karane ke liye
 VkSurfaceKHR surface;//surface set kiya VkPhysicalDevice 
 VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;//physical device ke liye 
 VkDevice device;//Logical devcie funcation ko logical devcie ke liye call kiya
+VkQueue graphicsQueue; // ye  queue ki index ke liye hai 
 int Index_QueueFamily = -1;// ye queue famliy ke index ke liye hai 
 VkSwapchainKHR swapChain;// real swap banaya swapChain)
 vector<VkImageView> swapChainImageViews; //orignal image ko store karke dikhne ke liye hai 
@@ -26,10 +27,13 @@ VkPipeline graphicsPipeline;// te graphics pipe line ke liye hai
 vector<VkFramebuffer> swapChainFramebuffers;// ye frame buffer ke liye hai
 VkCommandPool commandPool;// ye command pool save karne ke liye hai 
 VkCommandBuffer commandBuffer;//ye khali page commands buffer ke liye hai 
-VkCommandBufferBeginInfo beginInfo;
-VkSemaphore imageAvailableSemaphore;
-VkSemaphore renderFinishedSemaphore;
-VkFence inFlightFence;
+VkCommandBufferBeginInfo beginInfo;// ye Frane buffer record karane ke liye hai
+VkSemaphore imageAvailableSemaphore;//ye ek chota signal hai jo gpu me chalata hai ek task katam hone par duahra task
+// imageAvailableSemaphore; ye batata hai ki gou ne image swap chain se utha li hai 
+// renderFinishedSemaphore; ye batata hai ki drawing katam ho gai hai 
+VkSemaphore renderFinishedSemaphore;// ye vahi prani hai
+// ye ek bada signal hai to cpu to gpu jata hai 
+VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to nhi ho rahi 
     ~vulkan() {
          cout << "\n--- Cleaning up Engine ---" << endl;
          // Safety Check: Pehle check karo device exist karta hai ya nahi
@@ -55,6 +59,7 @@ VkFence inFlightFence;
                   vkDestroyImageView(device, swapChainImageViews[i], nullptr);
                 }
              }
+         if (swapChain != VK_NULL_HANDLE) vkDestroySwapchainKHR(device, swapChain, nullptr);
          // 5. Surface (Ye Instance ke handle se hota hai, Device se nahi!)
          if(surface != VK_NULL_HANDLE) vkDestroySurfaceKHR(instance, surface, nullptr);
          // 6. Logical Device (Ab baaki sab khatam, device ko bye-bye)
@@ -95,7 +100,7 @@ VkFence inFlightFence;
                 Create_garphics_pipeline();
                 Framebuffers();
                 Command_buffer(); 
-                Record_commands();
+                Record_commands(1);
                 Syn_GPU_CPU();                            
             }       
    }void physical_devices() {
@@ -190,6 +195,22 @@ VkFence inFlightFence;
             Device_Info.pEnabledFeatures = &deviceFeatures;//ye ek pointer hai jo puch raha hainki kitne feature chahiye tumhe hamane ishke liye froms bhara tha ushka address de diya
             if(vkCreateDevice(physicalDevice, &Device_Info, nullptr, &device) != VK_SUCCESS){return;}/* Main Action: Yahan device "paida" hota hai. Arguments: * physicalDevice: Asli GPU (Phone ka chip). &createInfo: Hamara bhara hua form.nullptr: Memory allocation ke liye (Vulkan default use karega).&device: Address jahan naya device "save" hoga. Logic: Agar function VK_SUCCESS return nahi karta, toh matlab koi gadbad hui hai (jaise driver support nahi kar raha).*/ 
                  cout<<"Logical device sucess"<<endl;
+                 vkGetDeviceQueue(device, Index_QueueFamily, 0, &graphicsQueue);
+                 /* 1. vkGetDeviceQueue (The Action)
+​                 Ye Vulkan ka ek "Handle Getter" function hai. Yaad rakh, ye koi naya object create nahi karta. Ye sirf us purani line ka result maangta hai jo tune VkDeviceCreateInfo mein bhari thi.
+​                 Logic: Tune Logical Device banate waqt bola tha "Mujhe ek Graphics Queue chahiye". Ab ye function usi queue ka "Address/Handle" dhoond kar lata hai.
+​                 2. device (Kahan se?)
+​                 Ye tera Logical Device hai jo tune abhi banaya tha. Ye batata hai ki "Bhai, is specific factory ke parking lot mein jao."
+​                 3. Index_QueueFamily (Kaunsa rasta?)
+​                 Tujhe yaad hoga, tune ek loop chalaya tha VK_QUEUE_GRAPHICS_BIT dhoondne ke liye.
+​                 Logic: Ek GPU mein bahut saari families hoti hain (Graphics, Compute, Transfer). Ye parameter GPU ko batata hai ki "Mujhe wahi queue chahiye jo Graphics draw karna jaanti ho."
+​                 4. 0 (Queue Index)
+​                 Ek hi Queue Family ke paas bahut saari queues ho sakti hain (jaise ek line mein 5 trucks khade hain).
+​                 Logic: Tune Device_Info.queueCount = 1 set kiya tha, isliye hum yahan 0 likhte hain (pehle aur iklaute truck ko uthane ke liye).
+​                 5. &graphicsQueue (Kahan store karun?)
+​                 Ye tera wo variable hai jo tune Struct mein banaya hai.
+​                 Logic: Vulkan us "Truck" (Queue) ki chaabi is variable mein daal dega. Ab jab bhi tujhe drawing bhejni hogi, tu graphicsQueue ka use karega.
+                 */
      }
      void create_surface(ANativeWindow* window) {
          VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo{};
@@ -587,7 +608,14 @@ VkFence inFlightFence;
              // Handle error
         }
     }
-    void Record_commands() {
+    void Record_commands(uint32_t FrameIndex) {//Ye sabse important hai. Swapchain mein 2-3 images (frames) hoti hain. Ye parameter batata hai ki GPU abhi kaunse number wali image (0, 1, ya 2) par paint karega.
+        /* Ye poora function ek Waiter ki tarah hai jo ek order slip (commandBuffer) leta hai:
+​        Slip par likhna shuru kiya (Begin).
+​        Table saaf kiya (ClearColor).
+​        Plate rakhi (Framebuffer).
+​        Chef ko bola "Triangle" banao (vkCmdDraw).
+​        Slip band ki aur Counter par bhej di (End).
+        */
         /* pehele mene only page liya tha but page me likhne ke liye pen 
         bhi to chahiye na ye funcation gpu ko batata hai ki aab command ana
         strat hogi */
@@ -602,22 +630,163 @@ VkFence inFlightFence;
         // .flags batata hai ki hum is buffer ko kaise use karenge
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; //"Bhai, main ye commands likh raha hoon, ek baar chalao aur phir panna faad do (reset)." (Ye heavy games mein optimize karne ke liye hota hai).
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {// ye real create kiya hai aur ushse &beginInfo) pe save kar diya 
-            // Error: Recording shuru nahi ho payi
+        
+             // Error: Recording shuru nahi ho payi
+             // 3. VkRenderPassBeginInfo (Canvas Ki Setting)
+             // ​Yahan hum bata rahe hain ki drawing kahan aur kaise hogi:
+             VkRenderPassBeginInfo renderPassInfo{};// ye ushka struct 
+             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;// ye struct type hai 
+             // bhai mera banaya hua setting hai ki  image  load hone par clear karana hai aur load karana hai 
+             renderPassInfo.renderPass = renderPass;//ye puch raha hai ki render pass kaha hai 
+             // framebuffer[imageIndex]:: ye vo parada buffer hai 
+             // jo screen ke liye ready hai 
+             // ye swap chain ke pass ja kar 
+             // bikh manta hai mujhe FrameIndex wala 
+             // screen de 
+             renderPassInfo.framebuffer = swapChainFramebuffers[FrameIndex];//ye bataya ki abhi konshse image pe hai 
+             // renderArea.offset = {0, 0}: Drawing screen ke ekdum kone (top-left) se shuru hogi. 
+             renderPassInfo.renderArea.offset = {0, 0};// screen ke top left se start hoga 
+             // renderArea.extent = {500, 300}: Sirf itne area mein hi drawing hogi.u
+             // ye 500 x 300 hi hona chahiye
+             // kyoki mene swapchain me yahi size di thi 
+             // agar nhi kiya to screen me achhe se drawing nhi hongi 
+             renderPassInfo.renderArea.extent = {500, 300};//  ye set kiya 
+             /* ​clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}}: Ye (R, G, B, Alpha) hai.
+​             Sab zero hain, iska matlab hai Black Screen.
+​             Agar me {{{1.0f, 0.0f, 0.0f, 1.0f}}} likhta, toh screen Red ho jati.
+              */
+             VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}}; // Black screen
+             /* Logic: Ye Vulkan ko batata hai ki tum kitne attachmentus 
+             (parde) ko saaf kar rahe ho.
+             ​Simple Matlab: Kyunki hum abhi sirf ek hi screen (Color Attachment) 
+             par kaam kar rahe hain, isliye humne yahan 1 likha hai. 
+             Agar hum "Depth Testing" (3D ke liye) use karte, 
+             toh yahan count badh jata kyunki humein color aur depth dono ko saaf karna padta.
+             */
+             renderPassInfo.clearValueCount = 1;
+             /*
+             ​Word: pClearValues (Pointer to Clear Values)
+             ​Logic: Ye wo address hai jahan tune apna rang (Black: 0,0,0,1) chhipa 
+             kar rakha hai.
+​             Simple Matlab: Vulkan is pointer ka peecha karta hua us 
+             VkClearValue struct tak jayega aur wahan se RGB values utha lega.
+             */
+             renderPassInfo.pClearValues = &clearColor;
+             // VK_SUBPASS_CONTENTS_INLINE: Iska matlab hai ki saari 
+             //commands isi main buffer mein likhi hain, koi dusra "secondary" buffer nahi hai.
+             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+             // 3. Pipeline Bind karo (Drawing Style)
+             // graphicsPipeline: GPU ko batata hai ki drawing karte waqt kaunse 
+             //Shaders (Vert/Frag) aur kaunse rules (Rasterizer settings) use karne hain.
+             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+             // 4. DRAW! (Asli Magic)
+             /* Yahi wo command hai jo triangle banati hai:
+​             3 (vertexCount): Kitne points draw karne hain? Humne 3 diye, kyunki 3 points mil kar ek Triangle banate hain.
+​             1 (instanceCount): Kitni baar? Hum 1 hi triangle draw kar rahe hain.
+​             0 (firstVertex): Vertex data mein kahan se shuru karein? 0 se.
+​             0 (firstInstance): Pehli instance ka ID
+             */
+             vkCmdDraw(commandBuffer, 3, 1, 0, 0); // 3 vertices = 1 Triangle
+             // 5. Khatam
+             // EndRenderPass: Matlab drawing khatam, ab parda (framebuffer) band kar do.
+             vkCmdEndRenderPass(commandBuffer);
+             // EndCommandBuffer: Ab panna (buffer) "Seal" (lock) ho gaya hai. 
+             //Ab ise badla nahi ja sakta, bas GPU ko bheja ja sakta hai.
+             vkEndCommandBuffer(commandBuffer);
         }
+        // aab page pe likh diya kab gpu ko dena hai 
+        
     }
-    
     void Syn_GPU_CPU() {
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        VkFenceCreateInfo fenceInfo{};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        VkSemaphoreCreateInfo semaphoreInfo{};// ye semaforce jo gpu par chalta ha* ushka struct hai 
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;// ye vulkan ko bata raha hai ki me ek semaforce ya fence banane ka resipy de raha hu 
+        VkFenceCreateInfo fenceInfo{};// ye fence banane ka struct hi jo cpu to gpu jata hai         
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;// ye ushka tyep hai 
+        /* ​🛑 Problem: Agar ye flag NA ho toh kya hoga?
+​         Maan le tune VkFenceCreateInfo fenceInfo{}; likha bina kisi flag ke. Default mein Vulkan ise Unsignaled (Band) banayega.
+​         Ab tera Render Loop shuru hota hai:
+​         Loop Start: CPU sabse pehle check karta hai vkWaitForFences. Iska kaam hai check karna ki "Kya GPU ne पिछला (previous) frame finish kar diya hai?"
+​         The Crash: Kyunki ye pehla frame hai, GPU ne aaj tak koi kaam kiya hi nahi. Fence "Unsignaled" hai.
+​         Deadlock: CPU wahin khade-khade GPU ka intezar karta rahega jo kabhi khatam nahi hoga, kyunki GPU ko kaam tabhi milega jab CPU aage badhega. Tera engine wahi "Freeze" ho jayega.
+​         ✅ Solution: VK_FENCE_CREATE_SIGNALED_BIT
+​         Is flag ka matlab hai: "Jab Fence paida ho, toh wo pehle se hi 'Signaled' (Khula) state mein ho."
+​         Ab Render Loop dekho:
+​         Loop Start: CPU check karta hai vkWaitForFences.
+​         The Pass: CPU dekhta hai ki "Arre, Fence toh pehle se hi Signaled hai!"
+​         Execution: CPU aage badhta hai, GPU ko command submit karta hai, aur vkResetFences chala kar darwaza Band kar deta hai taaki jab tak GPU kaam khatam na kare, CPU agla frame na bhej sake.
+​         🛠️ Ek-Ek Word ka Matlab:
+​         fenceInfo.flags: Ye wo jagah hai jahan hum Fence ki "Aadat" (Properties) batate hain.
+​         VK_FENCE_CREATE: Ye prefix hai jo batata hai ki ye "Creation" ke waqt ki setting hai.
+​         SIGNALED_BIT: Ye wo switch hai jo Fence ko "ON" (Khula) position mein rakhta hai.
+         */
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // Shuruat mein parda khula rakho
         vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore);
         vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore);
         vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence);
         cout<<"Complete"<<endl;
     }
+    void Frame_draw(){
+       // ye funcation kab chagela ek new frame genrate hoga
+       /* ​1. Acquire Image from Swapchain
+​       Sabse pehle GPU se ek image maangni hogi jispar tu draw kar sake.
+​       vkAcquireNextImageKHR use kar.
+​       Isme imageAvailableSemaphore pass kar taaki CPU ko pata chale kab image ready hai.
+​       2. Submit Command Buffer
+       ​Jo command buffer tune record kiya hai, usse GPU queue mein bhej (Submit).
+​       VkSubmitInfo struct fill kar.
+​       waitSemaphores: Jab tak image available na ho, wait kare.
+​       signalSemaphores: Jab rendering khatam ho jaye, toh ye signal kare (renderFinishedSemaphore).
+​       vkQueueSubmit call kar aur wahan inFlightFence use kar taaki agle frame se pehle check kar sake ki GPU free hai ya nahi.
+​       3. Prentation
+       ​Ab final image ko screen par "present" kar.
+​       VkPresentInfoKHR struct ka use kar.
+​       waitSemaphores: Render finish hone ka wait kare.
+​       vkQueuePresentKHR call kar.
+        */
+       // 1. Intezar karo (Wait for Fence)
+       // CPU ruka rahega jab tak GPU pichla kaam khatam na kar d
+       vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+       vkResetFences(device, 1, &inFlightFence); // Fence ko wapas band karo
+       // 2. Swapchain se Image uthao
+       uint32_t imageIndex;
+       vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+       // 3. Command Buffer ko Record karo (Refresh image index)
+        vkResetCommandBuffer(commandBuffer, 0); // Purani commands saaf karo
+        Record_commands(imageIndex); // Nayi commands likho is image ke liye
+        // 4. GPU ko Submit karo
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        // Signals ka khel: Drawing tabhi shuru karo jab image mil jaye
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        // Drawing khatam hone par ye signal bajega
+        VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+            cout << "Queue submit fail!" << endl;
+        }
+        // 5. Screen par dikhao (Presentation)
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores; // Wait for rendering to finish
+        VkSwapchainKHR swapChains[] = {swapChain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+        presentInfo.pImageIndices = &imageIndex;
+        vkQueuePresentKHR(graphicsQueue, &presentInfo);
+    }
     void While_true(){
+       // Jab tak app band nahi hoti, triangle draw karte raho
+       while (true) { 
+           Frame_draw(); 
+       }
     }
 };
 
@@ -626,4 +795,5 @@ int main(){
     // kal likhugi py
     return 0;
 }
+
 
