@@ -38,6 +38,11 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
          cout << "\n--- Cleaning up Engine ---" << endl;
          // Safety Check: Pehle check karo device exist karta hai ya nahi
          if (device == VK_NULL_HANDLE) return;
+         if (imageAvailableSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+         if (renderFinishedSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+         if (inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, inFlightFence, nullptr);
+         // 2. Command Pool (Saare command buffers isi ke andar hote hain, ye uda diya toh buffers khud udd jayenge)
+         if (commandPool != VK_NULL_HANDLE) vkDestroyCommandPool(device, commandPool, nullptr);
          // 1. Shaders (Hamesha device se pehle)
          if (shaderModule != VK_NULL_HANDLE) vkDestroyShaderModule(device, shaderModule, nullptr);
          if (fragModule != VK_NULL_HANDLE) vkDestroyShaderModule(device, fragModule, nullptr);
@@ -95,12 +100,18 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
                 cout<<"Instance created"<<endl;
                 physical_devices();
                 logical_device();
+                auto a;
+                create_surface(a);
+                swap_chain();
+                create_image_views();
                 render_pass(); 
                 Create_garphics_pipeline();
                 Framebuffers();
                 Command_buffer(); 
                 Record_commands(1);
-                Syn_GPU_CPU();                            
+                Syn_GPU_CPU();
+                Frame_draw();
+                                            
             }       
    }void physical_devices() {
     uint32_t deviceCount = 0; // GPU ki sankhya store karne ke liye variable
@@ -725,6 +736,8 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
         cout<<"Complete"<<endl;
     }
     void Frame_draw(){
+       /* Mune command buffer (chitti) likh li, par use GPU (factory) tak 
+        bbpahunchane aur wahan se wapas screen tak lane ka kaam ye code karta hai.*/
        // ye funcation kab chagela ek new frame genrate hoga
        /* ​1. Acquire Image from Swapchain
 ​       Sabse pehle GPU se ek image maangni hogi jispar tu draw kar sake.
@@ -744,41 +757,75 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
         */
        // 1. Intezar karo (Wait for Fence)
        // CPU ruka rahega jab tak GPU pichla kaam khatam na kar d
+       // Vulkan me cpu bohut fast h(ta hai but gpu slow
+       // me man leta hu ki gpu ek frame draw kar raha hai 
+       // to cpu ne ek new frame bejh diya to cod# crash hoga vahi 
+       // ye keheta hai kab tak gpu kam kar raha hai rukhe rehe 
        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+       // yr cpu ko banane ne liye hai ki image drawing katam ho gayi
+       // ab new frame bejh 
+       // ye line wahi kan karata hai 
        vkResetFences(device, 1, &inFlightFence); // Fence ko wapas band karo
        // 2. Swapchain se Image uthao
-       uint32_t imageIndex;
-       vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-       // 3. Command Buffer ko Record karo (Refresh image index)
+       // ye 2 lines gpu se parde ki bikh magati hai 
+        // imageIndex; ushse store karane ke liye hai  
+        uint32_t imageIndex;// 32 bits lega
+        // gpu se parda mangi ish funcation ki madat se
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        // 3. Command Buffer ko Record karo (Refresh image index)
+        // vkResetCommandBuffer: Purane frame ki commands ko dustbin mein daal diya.
         vkResetCommandBuffer(commandBuffer, 0); // Purani commands saaf karo
+        // Record_commands(imageIndex): Tune jo function banaya tha, use call 
+        // kiya taaki naye imageIndex ke liye "Triangle draw karo" wali command likhi ja sake.
         Record_commands(imageIndex); // Nayi commands likho is image ke liye
         // 4. GPU ko Submit karo
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        // VkSubmitInfo submitInfo{}; ye gpu ko bejne wala parecl hai
+        VkSubmitInfo submitInfo{};// struct inilazing
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;// ye ushka type hai 
         // Signals ka khel: Drawing tabhi shuru karo jab image mil jaye
-        VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        submitInfo.waitSemaphoreCount = 1;
+        /*GPU ko bola: "Order toh de raha hoon, par tab 
+        tak shuru mat karna jab tak imageAvailableSemaphore signal green na ho jaye."*/
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};// ye  order diya 
+        /* signalSemaphores: GPU ko bola: 
+        "Jab drawing khatam kar lo, toh 
+        renderFinishedSemaphore ko green kar dena."*/
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};// order diya 
+        submitInfo.waitSemaphoreCount = 1;//uye batata hai ki ek hi image ka wait karna hai 
+        // Jisme imageAvailableSemaphore hai
         submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pWaitDstStageMask = waitStages;// ye ek trafic police jese hai 
+        submitInfo.commandBufferCount = 1;// ye command buffer ek bar me kitne denge ushka conut
+        submitInfo.pCommandBuffers = &commandBuffer;// ye puvh raba hai kaha commandbuffer hai drawing ke liye 
         // Drawing khatam hone par ye signal bajega
+        // signalSemaphores: Ye sabse zaroori hai. Jab GPU triangle draw kar lega, toh wo is signal (renderFinishedSemaphore) ko 
+        // Green kar dega. Isse screen ko pata chalega ki "Ab drawing ready hai."
         VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+        //Logic: Tune pura order form GPU ki Queue mein daal diya. inFlightFence yahan bodyguard hai, 
+        // jo CPU ko batayega jab GPU pura packet deliver kar dega.
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+        submitInfo.pSignalSemaphores = signalSemaphores;// ye signal semaphores ki pata puch raha hai 
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {// real form bhara aur check kiya 
             cout << "Queue submit fail!" << endl;
         }
         // 5. Screen par dikhao (Presentation)
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        VkPresentInfoKHR presentInfo{};// ye struct screen pe image dikhne ke liye use =(ta =ai 
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;// ye struct type hai
         presentInfo.waitSemaphoreCount = 1;
+        // Screen se bola: "Tabhi triangle dikhana jab GPU signal de de ki drawing finish 
+        // ho gayi (renderFinishedSemaphore)." Adha-adhura triangle nahi chahiye
         presentInfo.pWaitSemaphores = signalSemaphores; // Wait for rendering to finish
+        // ​presentInfo.pSwapchains = swapChains;i
+        // ​Logic: Bataya ki kaunse Swapchain par parda hatana hai.
         VkSwapchainKHR swapChains[] = {swapChain};
+        //Screen se bola: "Tabhi triangle dikhana jab GPU signal de de ki drawing finish ho gayi 
+        //(renderFinishedSemaphore)." Adha-adhura triangle nahi chahiye!
         presentInfo.swapchainCount = 1;
+        // swap chain kaha hi bataya 
         presentInfo.pSwapchains = swapChains;
+        // ​Logic: Bataya ki Swapchain ki kaunse number wali image (0, 1, ya 2) ab screen par dikhani hai.
         presentInfo.pImageIndices = &imageIndex;
+        // Word: Present (Dikhawa).
+        // Logic final tep parda hat gaya aur mera triangle screen pr aa gaya 
         vkQueuePresentKHR(graphicsQueue, &presentInfo);
     }
     void While_true(){
