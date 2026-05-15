@@ -37,7 +37,7 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
     ~vulkan() {
          cout << "\n--- Cleaning up Engine ---" << endl;
          // Safety Check: Pehle check karo device exist karta hai ya nahi
-         if (device == VK_NULL_HANDLE) return;
+         if (device == VK_NULL_HANDLE) vkDeviceWaitIdle(device) return;
          if (imageAvailableSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
          if (renderFinishedSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
          if (inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, inFlightFence, nullptr);
