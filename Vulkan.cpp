@@ -95,7 +95,6 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
                 cout<<"Instance created"<<endl;
                 physical_devices();
                 logical_device();
-                Framebuffers();
                 render_pass(); 
                 Create_garphics_pipeline();
                 Framebuffers();
