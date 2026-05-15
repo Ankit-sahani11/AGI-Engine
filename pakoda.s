@@ -15,4 +15,5 @@ main:
 
 .data
 msg:
+    .ascii "ARM 64 assembly runing \n"
     .ascii "Hello, pakoda!\n"
