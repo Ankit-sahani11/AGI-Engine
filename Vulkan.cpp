@@ -832,8 +832,10 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
        float fps = 30.0;// fps set kiya 
        int sleep_time = static_cast<int>(1000.0 / fps);// tyep cast kiya approx 33 mili second  
        while (true) {// loop start kiya 
-       std::thread fps_controller(Frame_draw);// thread on kiya
-       std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));// time zone set kiya 
+           std::thread fps_controller([this]() { 
+        Frame_draw(); 
+    });// thread on kiya
+       this_thread::sleep_for(std::chrono::milliseconds(sleep_time));// time zone set kiya 
        if (fps_controller.joinable()) {// ye chack kiya ki ye thread active thread hai 
            fps_controller.join(); // agar ha to join kar do
         }return;
