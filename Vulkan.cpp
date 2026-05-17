@@ -1,4 +1,5 @@
 #define VK_USE_PLATFORM_ANDROID_KHR
+#include "native_glue.h" 
 #include <chrono>
 #include <thread>
 #include <fstream>
@@ -102,16 +103,7 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
                 cout<<"Instance created"<<endl;
                 physical_devices();
                 logical_device();
-                swap_chain();
-                create_image_views();
-                render_pass(); 
-                Create_garphics_pipeline();
-                Framebuffers();
-                Command_buffer(); 
-                Record_commands(1);
-                Syn_GPU_CPU();
-                Frame_draw();
-                                            
+                Command_pool();                           
             }       
    }void physical_devices() {
     uint32_t deviceCount = 0; // GPU ki sankhya store karne ke liye variable
@@ -827,27 +819,66 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
         // Logic final tep parda hat gaya aur mera triangle screen pr aa gaya 
         vkQueuePresentKHR(graphicsQueue, &presentInfo);
     }
-    void While_true() {
-       float fps = 30.0;// fps set kiya 
-       int sleep_time = static_cast<int>(1000.0 / fps);// tyep cast kiya approx 33 mili second  
-       while (true) {// loop start kiya 
-           std::thread fps_controller([this]() { 
-        Frame_draw(); 
-    });// thread on kiya
-       this_thread::sleep_for(std::chrono::milliseconds(sleep_time));// time zone set kiya 
-       if (fps_controller.joinable()) {// ye chack kiya ki ye thread active thread hai 
-           fps_controller.join(); // agar ha to join kar do
+ void While_true() {
+    // Kisi thread handle ki zaroorat nahi, seedha core render loop chalao
+    while (true) {
+        Frame_draw(); // 🔥 Direct execute karo hardware pipeline par
+
+        // 30 FPS target ke liye thoda sa pause (approx 33ms)
+        std::this_thread::sleep_for(std::chrono::milliseconds(33)); 
+    }
+}
+
+void init_window_surface(ANativeWindow* window) {
+    create_surface(window);       // 1. Ab parda mila
+    swap_chain();                 // 2. Ab swapchain banega makkhan ki tarah
+    create_image_views();
+    render_pass(); 
+    Create_garphics_pipeline();
+    Framebuffers();
+    Command_buffer(); 
+    Syn_GPU_CPU();
+}
+};
+
+// Android lifecycle commands ko handle karne wala receiver
+static void handle_cmd(struct android_app* app, int32_t cmd) {
+    vulkan* engine = (vulkan*)app->userData;
+    switch (cmd) {
+        case APP_CMD_INIT_WINDOW:
+            // JAADU: Android ne full-screen window de di!
+            if (app->window != nullptr) {
+                engine->init_window_surface(app->window); // Window bind karo
+                engine->While_true();                    // Loop chalu karo
+            }
+            break;
+        case APP_CMD_TERM_WINDOW:
+            // Window band hone par clean up logic lagao
+            break;
+    }
+}
+
+// Asli software entry point jo phone boot karega
+void android_main(struct android_app* app) {
+    vulkan engine; 
+    
+    app->userData = &engine;
+    app->onAppCmd = handle_cmd; 
+
+    // Modern Android Event Loop
+    while (app->destroyRequested == 0) {
+        int events;
+        struct android_poll_source* source;
+        
+        // 🔥 JADU: 'pollAll' ki jagah 'pollOnce' kar diya, baaki saare arguments ekdum same hain!
+        if (ALooper_pollOnce(0, nullptr, &events, (void**)&source) >= 0) {
+            if (source != nullptr) {
+                source->process(app, source); 
+            }
         }
     }
 }
 
-};
-
-int main(){
-    vulkan v;
-    // kal likhugi py
-    return 0;
-}
 
 
 
