@@ -534,31 +534,33 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
         // Soch ki hamre paas ek Render Pass hai (jo ek "Blueprint" hai ki drawing kaise karni hai). Lekin drawing karne ke liye koi jagah toh chahiye?
         //Framebuffer = Render Pass + Image View
         // Ye wo "Gond" (Glue) hai jo tere Render Pass ko tere Swapchain ki Images se chipkata hai. Iske bina GPU ko ye toh pata hoga ki "Triangle draw karna hai", par use ye nahi pata hoga ki "Kaunsi image par draw karna hai"
-        swapChainFramebuffers.resize(swapChainImageViews.size());// ye Frame Buffer itne hi chahiye jitne image hai aur swapChain batata hai ki kitne image hai
-            for (size_t i = 0; i < swapChainImageViews.size(); i++) { //swapChainFramebuffers ye ek for loop hai jo  me har ek Image View ke liye ek alag Framebuffer bana rahe hain. Ye loop har image par jaakar use "setup" karega.
-            VkImageView attachments[] = { swapChainImageViews[i] };//
-            // logic VkImageView attachments[] = { swapChainImageViews[i] }
-            // Framebuffer akela nahi hota, use batana padta hai ki wo kaunsi ImageView (image ka chashma) use karega. Humne yahan current image (i) ko ek array mein daal diya.
-            VkFramebufferCreateInfo framebufferInfo{};// ye ek struct hai jo Vulkan ko dena hai aur ye frame buffer ke liye hai 
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;// ye ushka type hai 
-            // Logic: Ye sabse zaroori hai! Framebuffer ko ye batana padta hai ki wo kis Render Pass ke saath dosti karega. Framebuffer ki settings aur Render Pass ki settings ekdum match honi chahiye (jaise dono mein 1 attachment hona chahiye).
-            framebufferInfo.renderPass = renderPass; //  ye render pass hai 
-            // logic framebufferInfo.attachmentCount
-            // me GPU ko bol raha  hain, "Bhai, is board par sirf ek parda (image) tanga hua hai." pAttachments us parde ka address de deta hai.
-            framebufferInfo.attachmentCount = 1;// render pass aur frame buffer ki setting ek jesi honi chahiye ish liye 1 attachment aur ye ushka address vulkan ko de deta hai
-            framebufferInfo.pAttachments = attachments;// ye ek pointer hai jo puch raha hai ki attachment kaha hai 
-            // logic seting heigth and width
-            // Ye Framebuffer ka size hai. Yaad rakhna, ye size tere Swapchain ke size ke barabar hona chahiye. (mene abhi hardcode kiya hai, par baad mein me ise dynamic karenge).
-            framebufferInfo.width = 500; // Filhal hardcode, baad mein capabilities se lena
-            framebufferInfo.height = 300;// ye haigth hai
-            // logic 2d / 3d screen setting
-            // Word: layers
-            //Logic:Hamari image 2D hai,isliye sirf 1layer kaafi hai. (VR games mein yahan 2 layers hoti hain). 
-            framebufferInfo.layers = 1;//ye raha setting layer kiya idhar
-            if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-                 cout << "Failed to record command buffer!" << endl;
-           }
+        
+    // 1. Apni list ko resize karo jitne Swapchain ke image views hain
+    swapChainFramebuffers.resize(swapChainImageViews.size());
+
+    // 2. Har ek image view ke liye alag se Framebuffer banao
+    for (size_t i = 0; i < swapChainImageViews.size(); i++) { 
+        VkImageView attachments[] = { swapChainImageViews[i] };
+        
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass; // Kiske sath dosti karni hai
+        framebufferInfo.attachmentCount = 1;     // Kitne parde hain (1 screen)
+        framebufferInfo.pAttachments = attachments; // Us parde ka address
+        framebufferInfo.width = 500;             // Swapchain ki width
+        framebufferInfo.height = 300;            // Swapchain ki height
+        framebufferInfo.layers = 1;              // Standard 2D image ke liye 1 layer
+
+        // 🔥 ASLI ACTION: Yahan real framebuffer paida hoga aur list mein save hoga!
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+            cout << "Framebuffer creation fail at index " << i << endl;
         }
+    }
+    
+    // Loop ke bahar ek baar makkhan jaisa success print
+    cout << "Framebuffers Ready! Sabhi screens setup ho gayi." << endl;
+
+
             // Mere paas 3 khali Canvas (Images) hain. Ye code har canvas ko uthata hai, use ek lakdi ke frame (Framebuffer) mein fasta hai, aur uske upar Render Pass ki "Moher" (Stamp) laga deta hai taaki GPU uspar draw kar sake.
              // complete 
     }
@@ -569,7 +571,6 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
         commandPool likhte ho, toh Vulkan ko 
         nayi memory dhoondni nahi padti. Wo usi pool ke andar se ek chota s
         a tukda kaat kar tumhare buffer ko de deta hai.*/
-        // GPU ko command dene ke liye menory chahiye hoti hai
         // yahi commad pool me me karuga 
         // menory allocate
         // ye  command pool ka stuct hai like a from
@@ -630,7 +631,7 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;// ye ushk struct tyep hai
         // .flags batata hai ki hum is buffer ko kaise use karenge
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; //"Bhai, main ye commands likh raha hoon, ek baar chalao aur phir panna faad do (reset)." (Ye heavy games mein optimize karne ke liye hota hai).
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {// ye real create kiya hai aur ushse &beginInfo) pe save kar diya 
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) == VK_SUCCESS) {// ye real create kiya hai aur ushse &beginInfo) pe save kar diya 
         
              // Error: Recording shuru nahi ho payi
              // 3. VkRenderPassBeginInfo (Canvas Ki Setting)
