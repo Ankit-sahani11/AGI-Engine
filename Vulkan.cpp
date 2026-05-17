@@ -39,7 +39,7 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
     ~vulkan() {
          cout << "\n--- Cleaning up Engine ---" << endl;
          // Safety Check: Pehle check karo device exist karta hai ya nahi
-         if (device == VK_NULL_HANDLE) vkDeviceWaitIdle(device); return;
+         if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
          if (imageAvailableSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
          if (renderFinishedSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
          if (inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, inFlightFence, nullptr);
@@ -563,10 +563,9 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
             // Word: layers
             //Logic:Hamari image 2D hai,isliye sirf 1layer kaafi hai. (VR games mein yahan 2 layers hoti hain). 
             framebufferInfo.layers = 1;//ye raha setting layer kiya idhar
-            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {// ye real funcation hai jo Frame buffer banata hai aur ushko &swapChainFramebuffers[i]) vector me save kar deta hai 
-                 cout << "Framebuffer fail!" << endl;
-                 return;
-            }
+            if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+                 cout << "Failed to record command buffer!" << endl;
+           }
         }
             // Mere paas 3 khali Canvas (Images) hain. Ye code har canvas ko uthata hai, use ek lakdi ke frame (Framebuffer) mein fasta hai, aur uske upar Render Pass ki "Moher" (Stamp) laga deta hai taaki GPU uspar draw kar sake.
              // complete 
@@ -849,5 +848,6 @@ int main(){
     // kal likhugi py
     return 0;
 }
+
 
 
