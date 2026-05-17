@@ -837,7 +837,7 @@ VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to n
        this_thread::sleep_for(std::chrono::milliseconds(sleep_time));// time zone set kiya 
        if (fps_controller.joinable()) {// ye chack kiya ki ye thread active thread hai 
            fps_controller.join(); // agar ha to join kar do
-        }return;
+        }
     }
 }
 
