@@ -37,44 +37,37 @@ VkSemaphore imageAvailableSemaphore;//ye ek chota signal hai jo gpu me chalata h
 VkSemaphore renderFinishedSemaphore;// ye vahi prani hai
 // ye ek bada signal hai to cpu to gpu jata hai 
 VkFence inFlightFence;// aur check karata hai ki hawa me drawing processing to nhi ho rahi 
-    ~vulkan() {
-         cout << "\n--- Cleaning up Engine ---" << endl;
-         // Safety Check: Pehle check karo device exist karta hai ya nahi
-         if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
+~vulkan() {
+     cout << "\n--- Cleaning up Engine ---" << endl;
+     if (device != VK_NULL_HANDLE) {
+         vkDeviceWaitIdle(device);
+         
          if (imageAvailableSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
          if (renderFinishedSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
          if (inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, inFlightFence, nullptr);
-         // 2. Command Pool (Saare command buffers isi ke andar hote hain, ye uda diya toh buffers khud udd jayenge)
          if (commandPool != VK_NULL_HANDLE) vkDestroyCommandPool(device, commandPool, nullptr);
-         // 1. Shaders (Hamesha device se pehle)
          if (shaderModule != VK_NULL_HANDLE) vkDestroyShaderModule(device, shaderModule, nullptr);
          if (fragModule != VK_NULL_HANDLE) vkDestroyShaderModule(device, fragModule, nullptr);
-         //abb me pipeline ko delete karuga
-         if(graphicsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, graphicsPipeline, nullptr);
-         // 2. Pipeline aur Layout
+         if (graphicsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, graphicsPipeline, nullptr);
          if (pipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-         // Agar graphicsPipeline banayi hai toh: 
-         // vkDestroyPipeline(device, graphicsPipeline, nullptr);
-         // 3. Render Pass
          if (renderPass != VK_NULL_HANDLE) vkDestroyRenderPass(device, renderPass, nullptr);
-         // 4. Vie Swap chain ko delete
-         auto start = swapChainImageViews.data(); 
-         // Aakhri element ke address mein 1 element ki jagah aur add karne par 'end' milta hai
-         auto end = &swapChainImageViews.back() + 1; 
-         int count = end - start; // Ye aapko total elements de dega
-         for(auto  i = 0; i < count;i++){
-              if(swapChainImageViews[i] != VK_NULL_HANDLE){
-                  vkDestroyImageView(device, swapChainImageViews[i], nullptr);
-                }
+         
+         // 🚨 SAFE WAY: Purana method crash kar raha tha agar images na bani hon
+         for (auto imageView : swapChainImageViews) {
+             if (imageView != VK_NULL_HANDLE) {
+                 vkDestroyImageView(device, imageView, nullptr);
              }
-         if (swapChain != VK_NULL_HANDLE) vkDestroySwapchainKHR(device, swapChain, nullptr);
-         // 5. Surface (Ye Instance ke handle se hota hai, Device se nahi!)
-         if(surface != VK_NULL_HANDLE) vkDestroySurfaceKHR(instance, surface, nullptr);
-         // 6. Logical Device (Ab baaki sab khatam, device ko bye-bye)
-         if(device != VK_NULL_HANDLE) vkDestroyDevice(device, nullptr);
-         // 7. Instance (Aakhiri step)
-         if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
          }
+         if (swapChain != VK_NULL_HANDLE) vkDestroySwapchainKHR(device, swapChain, nullptr);
+         if (device != VK_NULL_HANDLE) vkDestroyDevice(device, nullptr);
+     }
+     
+     if (instance != VK_NULL_HANDLE && surface != VK_NULL_HANDLE) {
+         vkDestroySurfaceKHR(instance, surface, nullptr);
+     }
+     if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
+}
+
 
      vulkan(){
         // Set a Infor of app
