@@ -1,0 +1,1026 @@
+🤣🤣🤣 🤣😂
+
+
+Game-Engine[Costume] 
+
+
+waring : eature every return statement are 143 and the consent value of engine are 143  
+
+143 ek Kaprekar number hai, kyunki 143^2 = 20449 aur 20 + 449 = 469 (wait, 143 ke case mein 143^2 = 20449, aur 204 + 49 = 253... chalo ye complex ho gaya).
+
+
+Graphic kenral engine:
+
+
+AND THIS SYSTEM SUPPORT GALI BASE AUTOTICATION 
+
+Aviable Gali
+
+Mad
+
+Shitpost
+
+Fool
+
+Monkey
+
+Donkey
+
+Brain less monkey
+
+Damage brain cells
+
+You brain and code are give as SegFlaut Fool ?
+
+Donkey 
+
+Dustbin
+
+Dustbin Eater
+
+what is fucking Non Sence ? "Are you trying to run an 500+ error manufacturing plant?" 
+
+
+Handshake: User terminal pe login karne ki koshish karega.
+
+Challenge: System ek random SegFault throw karega.
+Kab User 143 tigger nhi karata tab : 
+
+.global gali_module_print
+gali_module_print:
+    // x0 already contains the "Fool" level from your Step 52
+    // Agar input 143 nahi hai, toh Dustbin Eater mode ON
+    cmp x0, #143
+    beq success_samosa
+    
+    // Gali_Module Triggered
+    ldr x0, =error_msg_dustbin
+    bl  printf
+    mov x0, #0
+    ret
+
+success_samosa:
+    // Success path
+    mov x0, #143
+    ret
+
+.data
+error_msg_dustbin: .asciz "Error 143: Dustbin Eater mode engaged. Samosa girega toh code bhi girega!\n"
+
+Response (The Auth): User ko sahi "Gali" (Password) enter karni hogi jo uske current Code_Stupidity_Level se match kare.
+
+Verification: Agar gali sahi hai, toh access = 143. Agar galat, toh access = 0 (aur system turant 'Dustbin Eater' mode mein chala jayega).
+
+
+
+
+Step -1: Tujhe Ek Light Reflection Module Likhna Hai Na Man Ho To Pakoda.s Use kar le Ya phir se Copy Kar
+
+
+.global reflect_light
+
+bl  reflect_light
+
+reflect_light:
+
+
+    // 1. Calculate Dot Product: (N . I)
+
+
+    fmul    v2.4s, v1.4s, v0.4s     // v2 = [Nx*Ix, Ny*Iy, Nz*Iz, 0]
+
+
+    
+
+
+    // Summing x, y, z components correctly
+
+
+    faddp   v4.4s, v2.4s, v2.4s     // v4 = [x+y, z+0, x+y, z+0]
+
+
+    faddp   v4.4s, v4.4s, v4.4s     // v4 = [(x+y)+(z+0), ...] -> s4 has the total sum
+
+
+    
+
+
+    // 2. Calculate 2 * (N . I)
+
+
+    fadd    s4, s4, s4              // s4 = sum + sum (Faster than multiplying by 2.0)
+
+
+    
+
+
+    // 3. Broadcast 2*(N.I) to all lanes
+
+
+    dup     v3.4s, v4.s[0]          // v3 = [scalar, scalar, scalar, scalar]
+
+
+    
+
+
+    // 4. Calculate vector: [2 * (N . I)] * N
+
+
+    fmul    v3.4s, v3.4s, v1.4s     // v3 = 2(N.I) * N
+
+
+    
+
+
+    // 5. Final Reflection: R = I - v3
+
+
+    fsub    v2.4s, v0.4s, v3.4s     // v2 = I - 2(N.I)N
+
+      
+
+     sub sp,sp,#16     
+
+     str x0,[sp,#0]
+
+     str x30,[sp,#8]
+
+      mov x0,#0
+
+exit:
+
+       mov x8,#93
+
+       ldr x19,[sp,#0]
+
+       ldr x30,[sp,#8]
+
+       add sp ,sp,#16
+
+       svc #0
+
+       
+
+    
+
+
+    
+Tip 1: Single Core Execution: Even if the SoC features a massive octa-core cluster, the hardware automatically selects a single primary core (the Boot CPU) to begin fetching instructions. All other secondary cores are natively placed into a low-power hardware standby or sleep state (Power-Down State), waiting for a software-driven wakeup command.Instruction State: The processor defaults to the 64-bit execution state (AArch64).Interrupt Masking: All physical asynchronous exceptions—including standard interrupts (IRQs), fast interrupts (FIQs), System Errors (SErrors), and Routing Aborts—are globally masked at the CPU core level. The processor will ignore external hardware signals until the bootloader explicitly unmasks them.
+2. Managing Exception Levels (EL) and PrivilegeThe defining feature of the ARM64 architecture is its privilege hierarchy, divided into four distinct Exception Levels (EL). Unlike traditional microcontrollers that boot into a single flat memory space, an ARM64 processor boots directly into an architectural boundary layer.+-------------------------------------------------------------+
+
+|               EL3: Secure Monitor / Firmware                | <-- Cold Boot State
++-------------------------------------------------------------+
+
+                              | (Controlled Drop via ERET)
+                              v
++-------------------------------------------------------------+
+|               EL2: Hypervisor / Virtualization              | <-- Hypervisor Boot
++-------------------------------------------------------------+
+
+                              | (Controlled Drop via ERET)
+                              v
++-------------------------------------------------------------+
+|               EL1: Rich OS Kernel / Supervisor              | <-- Target Run State
++-------------------------------------------------------------+
+
+                              | (System Runtime Execute)
+                              v
++-------------------------------------------------------------+
+|               EL0: User Applications / Unprivileged         |
++-------------------------------------------------------------+
+The Boot Privilege ParadoxWhen the Boot CPU wakes up, it starts execution at the highest implemented Exception Level, which is typically EL3 (Secure Monitor).
+EL3 has complete, unrestricted access to both the Secure and Non-Secure physical memory spaces.A runtime Operating System (like Linux or macOS) is designed to execute at EL1 (Supervisor Mode), while virtualized environments run at EL2 (Hypervisor Mode).The bootloader's foundational theoretical duty is to configure the system properties while running in high privilege (EL3/EL2) and then perform a controlled architectural downgrade (Exception Return) to hand execution over to the operating system kernel at a lower privilege level (EL1) without compromising system stability.3. Register Configuration and Architectural SetupBefore the bootloader can drop the privilege level or load an operating system, it must manually program several critical system registers that define how the processor behaves.Enforcing Execution States (SCR_EL3 and HCR_EL2)The Secure Configuration Register (SCR_EL3) and Hypervisor Configuration Register (HCR_EL2) control the architectural state of the lower exception levels. The bootloader must explicitly write to these registers to establish:The Width of Lower Levels: It sets specific Register Width bits (RW bits) to ensure that when the processor drops to EL2 or EL1, it remains in 64-bit mode (AArch64) rather than accidentally dropping back into a legacy 32-bit (AArch32) mode.The Security World: It sets the Non-Secure (NS) bit to segment the system. This isolates secure silicon components (like hardware cryptographic accelerators or biometric data enclaves) from the generic, non-secure memory space where the main operating system will run.
+Traps and System Access ControlBy default, early boot levels block advanced hardware functions. The bootloader must configure architectural control registers (such as CPTR_EL3 and CPTR_EL2) to disable floating-point and SIMD access traps. If left unconfigured, the instant the OS kernel attempts a vector math calculation or floating-point operation, the hardware will trigger a system-level fault, causing an immediate crash.4. The Architectural Mechanics of the Context Switch (EL Drop)The transition from a high exception level bootloader to a lower exception level operating system is achieved through a specialized hardware instruction loop known as an Exception Return (ERET).To the ARM64 hardware, dropping privilege is treated as if the processor is returning from an interrupt handler that occurred before the machine even turned on. The bootloader orchestrates this illusion using three architectural system registers:The Target Configuration Space (SPSR_ELx): The bootloader writes to the Saved Program Status Register. This maps out exactly what the processor state should look like the millisecond after the jump occurs. It tells the hardware what interrupts to unmask and defines the target level (e.g., configuring execution to resume in EL1h with the dedicated EL1 stack pointer).The Target Address Pointer (ELR_ELx): The bootloader loads the exact 64-bit base memory address of the operating system kernel or the next boot stage into the Exception Link Register.The Target Stack Segment (SP_EL1): The bootloader configures the stack pointer for the incoming level so that the operating system has immediate, clean memory workspace to allocate variables upon arrival.
+.and basic code 
+Architectural Anatomy & Memory MappingA robust system isolates the bootloader from the main user application using a strict partition layout within the non-volatile Flash memory.Typical Memory MapSector 0 (Base Address, e.g., 0x0800 0000): Bootloader Vector Table & Execution Binary.Sector 1 (Configuration Space): Shared Flags (e.g., in EEPROM or specialized flash) to signal update modes or validate firmware status.Sector 2+ (Application Space, e.g., 0x0800 8000): Main User Firmware Image (with its own offset vector table).Multi-Stage BootingIn complex System-on-Chips (SoCs), bootloading occurs in sequential stages due to tight initial memory boundaries:ROM Bootloader (Stage 0): Hard-coded by the silicon manufacturer; sets up foundational clocks and reads hardware boot-pins.First-Stage Bootloader (FSBL / SPL): Initializes basic chip peripherals and configuration settings, then maps out external DRAM.Second-Stage Bootloader (SSBL): A full-featured environment (like Das U-Boot) that handles file systems, network connections, security verifications, and loads the OS kernel into memory.Critical Operational MechanicsHardware Initialization: The bootloader must program the Phase-Locked Loops (PLL) to configure system clock rates, shut down the watchdog timer initially to avoid unexpected loops, and prepare communication ports (UART, I2C, USB, or CAN).Integrity & Authentication (Secure Boot): Before running the primary application, the bootloader performs an integrity check (using CRC32 or SHA-256). In Secure Boot configurations, it uses asymmetric cryptographic keys (RSA or ECC) stored in One-Time Programmable (OTP) hardware fuses to verify the binary's digital signature.In-Application Programming (IAP): If a boot-pin or software flag demands an update, the bootloader enters upgrade mode. It streams new firmware data over a peripheral interface, erases the destination flash sectors, and writes the incoming binary into memory.Context Switching (The Jump): To pass complete control over to the main application, the bootloader performs three vital commands:Disables all active peripheral interrupts to prevent crash conditions.Updates the Main Stack Pointer (MSP) to the application's base stack address.Modifies the Program Counter (PC) to the address of the application's Reset Handler.
+                +---------------------------------------+
+
+                |          Power On / Reset             |
+                +---------------------------------------+
+
+                                    |
+                                    v
+                +---------------------------------------+
+                |     Initialize Clocks & GPIO          |
+                +---------------------------------------+
+
+                                    |
+                                    v
+                     /-----------------------------\
+                    /   Is Update Pin Active OR     \
+                   <    Is Application Invalid?      >
+                    \                               /
+                     \-----------------------------/
+                               /           \
+                       YES    /             \  NO
+                             v               v
+        +-------------------------+     +-------------------------+
+        | Enter Download Mode     |     | Disable Interrupts      |
+        | (Receive via UART)      |     +-------------------------+
+        +-------------------------+                 |
+
+                     |                              v
+                     v                  +-------------------------+
+        +-------------------------+     | Relocate Stack Pointer  |
+        | Erase App Flash Sectors |     +-------------------------+
+        +-------------------------+                 |
+
+                     |                              v
+                     v                  +-------------------------+
+        +-------------------------+     | Jump to App Reset Vector|
+        | Write & Verify Image    |     +-------------------------+
+        +-------------------------+                 |
+
+                     |                              v
+                     v                  +-------------------------+
+        +-------------------------+     |   App Main Execution    |
+        |     Software Reset      |     +-------------------------+
+        +-------------------------+
+Phase 1: Linker Script ConfigurationYou must isolate the memory spaces by writing custom linker scripts (.ld) for both projects.Bootloader Linker Script Changeslinker-script/* bootloader_linker.ld */
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 32K  /* First 32KB for Bootloader */
+  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 64K
+}
+Use code with caution.Application Linker Script Changeslinker-script/* app_linker.ld */
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = 0x08008000, LENGTH = 480K /* Offset by 32KB */
+  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 64K
+}
+Use code with caution.Phase 2: Hardware Control Code (C Language)Implement system initialization and checking options inside the main execution loop.
+// ============================================================================
+// File: bootloader.S
+// Target: ARM64 (AArch64) Bare-Metal
+// Purpose: Multi-Stage Initialization, Payload Copying, and EL Drop Jump
+// ============================================================================
+
+.section ".text.boot"
+.global _start
+
+// Memory Mapping Targets (Arbitrary reference layout for bare-metal SoC)
+.equ BOOTLOADER_BASE,   0x40000000
+.equ PAYLOAD_SOURCE,    0x40100000   // Location where payload sits in Flash/ROM
+.equ PAYLOAD_DEST,      0x80000000   // Target RAM Execution Base Location
+.equ PAYLOAD_SIZE,      0x00020000   // Size of code to move (e.g., 128 KB)
+.equ BOOT_STACK_TOP,    0x4000F000   // Working stack allocation
+
+_start:
+    // ------------------------------------------------------------------------
+    // Step 1: Core Identification & Core 0 Parking Check
+    // ------------------------------------------------------------------------
+    mrs     x0, mpidr_el1               // Read Multiprocessor Affinity Register
+    and     x0, x0, #0xFF               // Mask out CPU ID core bits
+    cbz     x0, .core0_continue         // If Core 0, continue to boot execution
+
+.secondary_cores_loop:
+    wfe                                 // Put non-boot cores into low-power sleep
+    b       .secondary_cores_loop
+
+.core0_continue:
+    // ------------------------------------------------------------------------
+    // Step 2: Establish Working Execution Stack Pointer
+    // ------------------------------------------------------------------------
+    ldr     x0, =BOOT_STACK_TOP
+    mov     sp, x0
+
+    // ------------------------------------------------------------------------
+    // Step 3: Architecture State & Exception Level Configuration
+    // ------------------------------------------------------------------------
+    // Check our current Exception Level to safely manipulate registers
+    mrs     x0, CurrentEL
+    lsr     x0, x0, #2
+    and     x0, x0, #3                  // Extract numeric level (0-3)
+
+    cmp     x0, #3                      // Are we running inside EL3?
+    b.eq    .from_el3                   
+    cmp     x0, #2                      // Are we running inside EL2?
+    b.eq    .from_el2
+    b       .copy_payload               // Already in EL1, skip down-routing
+
+.from_el3:
+    // Configure EL3 Execution state (SCR_EL3)
+    // Set RW bit (Bit 10) = 1 to enforce AArch64 execution state for EL2/EL1
+    // Set NS bit (Bit 0)  = 1 to route to Non-Secure world
+    mrs     x1, scr_el3
+    orr     x1, x1, #(1 << 10)          // Next lower level is AArch64 [4]
+    orr     x1, x1, #(1 << 0)           // Non-secure routing [5]
+    msr     scr_el3, x1
+
+    // Setup Saved Program Status Register (SPSR_EL3) to prepare a drop into EL2
+    // Mask interrupts: F=1, I=1, A=1, D=1. Target execution state: EL2h (0b01009) [2]
+    mov     x1, #0x3C9
+    msr     spsr_el3, x1
+
+    // Load the return entry handler address to point inside our EL2 layer
+    adr     x1, .from_el2
+    msr     elr_el3, x1
+    eret                                // Exception Return to EL2 execution context
+
+.from_el2:
+    // Configure EL2 Execution state (HCR_EL2)
+    // Set RW bit (Bit 31) = 1 to enforce AArch64 execution mode for EL1
+    mov     x1, #(1 << 31)
+    msr     hcr_el2, x1
+
+    // Disable architectural traps for floating point/SIMD access routines
+    mov     x1, #(3 << 20)              // Enforce no-trap state architectural controls
+    msr     cptr_el2, x1
+
+    // Disable architecture stage-2 translations initially
+    msr     vttbr_el2, xzr
+
+    // ------------------------------------------------------------------------
+    // Step 4: Firmware/Payload Image Copy Sequence (In-Application Engine)
+    // ------------------------------------------------------------------------
+.copy_payload:
+    ldr     x0, =PAYLOAD_SOURCE         // Reading index source register
+    ldr     x1, =PAYLOAD_DEST           // Writing index destination register
+    ldr     x2, =PAYLOAD_SIZE           // Total loop countdown limit tracking
+    mov     x3, #0                      // Byte offset counter register
+
+.copy_loop:
+    // Read and Write memory blocks in hyper-efficient 16-byte pairs
+    ldp     x4, x5, [x0, x3]            // Load pair from source
+    stp     x4, x5, [x1, x3]            // Store pair to destination
+    add     x3, x3, #16                 // Offset ahead by 16 bytes
+    cmp     x3, x2                      // Complete verification limit?
+    b.lt    .copy_loop                  // Continue loop if counter < payload size
+
+    // ------------------------------------------------------------------------
+    // Step 5: Cache Clean and Instruction Invalidation
+    // ------------------------------------------------------------------------
+    // Ensure modified binary instructions are explicitly written to RAM pipelines
+    dsb     ish                         // Data Synchronization Barrier
+    isb                                 // Instruction Synchronization Barrier
+
+    // ------------------------------------------------------------------------
+    // Step 6: Vector Tables & Stack Initialization for OS Execution Environment
+    // ------------------------------------------------------------------------
+    // Clean target state register spaces to avoid passing junk state registers
+    msr     vbar_el1, xzr               // Zero out EL1 Vector Table until kernel maps it
+    ldr     x0, =PAYLOAD_DEST           // Set target entry pointer
+    
+    // Allocate distinct execution stack boundary allocation for the OS Kernel execution
+    mov     x1, #0x80F00000             
+    msr     sp_el1, x1                  // Set target EL1 stack structure point
+
+    // ------------------------------------------------------------------------
+    // Step 7: Context Switch & Execution Transfer Jump (Drop to EL1)
+    // ------------------------------------------------------------------------
+    // Setup target configuration settings profile inside SPSR_EL2
+    // Mask interrupts: F=1, I=1, A=1, D=1. Target execution mode: EL1h (0b00101) [2]
+    mov     x2, #0x3C5
+    msr     spsr_el2, x2
+
+    // Set Exception Link Register to target the base address of the payload
+    msr     elr_el2, x0
+
+    // Wipe global purpose registers to prevent side-channel information leakage
+    mov     x0, xzr
+    mov     x1, xzr
+    mov     x2, xzr
+    mov     x3, xzr
+
+    eret                                // Final Hardware jump. Drops to EL1 and executes
+                                        // the code located at PAYLOAD_DEST.
+
+Memory and Build Setup ScriptTo stitch this code cleanly onto hardware storage, you must link it using absolute memory boundaries.
+ENTRY(_start)
+
+SECTIONS
+{
+    /* The loader is hardwired to map directly into base address boundary lines */
+    . = 0x40000000; 
+
+    .text : {
+        *(.text.boot)
+        *(.text)
+    }
+
+    .data : { *(.data) }
+    .bss  : { *(.bss) }
+}
+
+
+
+
+Step 0 : tu mere pass 100$ me Tution Fees lene na samosha le kar 💯 
+
+
+1. Vector Algebra (Sabse Important)Vectors: 2D, 3D aur 4D vectors ki basic samajh.Dot Product: Angles nikalne aur lighting (Lambertian reflectance) calculate karne ke liye.Cross Product: Normal vectors aur camera coordinate system (Right, Up, Forward) banane ke liye.Normalization: Vectors ko unit length (length = 1) me convert karna, jo ray direction ke liye zaroori hai.Distance Formula: Do points ke beech ka gap nikalne ke liye.2. Matrix & Transformations.Translation, Rotation, Scaling Matrices: Objects ko move, rotate aur scale karne ke liye 4x4 matrices ka use hota hai.Matrix Multiplication: Multiple transformations ko ek sath combine karne ke liye.Inverse Matrices: Ray ko world space se object local space me transform karne ke liye (taki complex shapes ka SDF calculation aasan ho jaye).3. Analytic Geometry & SDF FunctionsGeometric Primitives: Sphere, Cube, Cylinder aur Torus ki mathematical equations.Signed Distance Functions: Yeh samajhna ki kaise ek function positive value (outside), zero (surface), aur negative value (inside) return karta hai.Constructive Solid Geometry (CSG): Do shapes ko combine karne ke mathematical operations:Union: \(min(d1, d2)\)Intersection: \(max(d1, d2)\)Difference: \(max(d1, -d2)\)4. Calculus (Lighting aur Smoothing ke liye)Partial Derivatives & Gradients: SDF surface ka Normal Vector (direction) nikalne ke liye gradient calculate karna padta hai. Iske bina lighting, reflections aur shadows impossible hain.Smooth Minimum (\(smin\)): Do shapes ke beech me smooth blending (metaballs effect) create karne ke liye calculus-based interpolation functions ka use hota hai.5. Trigonometry & Noise FunctionsSine / Cosine: Waves, water animations, aur rotation formulas ke liye.Engine mein lighting ke liye SDF surface ka Normal (direction) nikalna zaroori hai. Iske liye calculus ke derivatives seekhne ki jagah aap ek simple trick use kar sakte hain jise Central Differences kehte basic moving obj formula gl_Position = Projection * View * Model * vec4(position, 1.0);hain:Concept: Kisi point ke aage-piche thoda sa shift hokar (\(\epsilon = 0.001\)) SDF value check karein.Formula:
+
+
+\(\text{Normal.x}=\text{SDF}(x+\epsilon ,y,z)-\text{SDF}(x-\epsilon ,y,z)\)
+
+
+\(\text{Normal.y}=\text{SDF}(x,y+\epsilon ,z)-\text{SDF}(x,y-\epsilon ,z)\)
+
+
+\(\text{Normal.z}=\text{SDF}(x,y,z+\epsilon )-\text{SDF}(x,y,z-\epsilon )\)Fractals & Noise: Procedural terrains aur textures banane ke liye Fractal Brownian Motion (fBM) aur Perlin/Simplex noise ki maths.S
+
+
+Step 1 : sabse pehele chasni_loader.c run kar agar error aaye to jri me ja kar exit function me register me Jalebi daal kar 143 return kar wa
+
+
+Step 2 : aab tu pakoda_khayega run kar error aaye to pakode ke bare me soch 
+
+
+Step 3 : agar error aaya ho to gali_module on hoga 
+
+
+Step 4 : gali soon Aur pakode ka shader likh
+
+Examples
+
+#version 450
+
+
+// Output to the fragment shader
+
+layout(location = 0) out vec2 outUV;
+
+
+void main() {
+
+    // Generate UV coordinates based on the current vertex index (0, 1, or 2)
+
+    // This perfectly wraps a single large triangle over the entire screen.
+
+    outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+
+    
+
+    // Map the UVs (0 to 2) to Normalized Device Coordinates (-1 to 1)
+
+    gl_Position = vec4(outUV * 2.0 - 1.0, 0.0, 1.0);
+
+    
+
+    // Vulkan's Y-axis is flipped compared to OpenGL, so we correct the UV.y
+
+    outUV.y = 1.0 - outUV.y;
+
+}
+
+And frag 
+
+#version 450
+
+
+// Adreno 610 Optimization: 
+
+// mediump drastically reduces register pressure and ALU power consumption.
+
+precision mediump float;
+
+
+// Input from the Vertex Shader (must match location 0)
+
+layout(location = 0) in vec2 inUV;
+
+
+// Output to the Framebuffer
+
+layout(location = 0) out vec4 outColor;
+
+
+// --- Pakoda Color Palette ---
+
+const vec3 C_PALE_GOLD = vec3(0.96, 0.82, 0.35); 
+
+const vec3 C_GOLDEN_BROWN = vec3(0.80, 0.48, 0.12); 
+
+const vec3 C_CRISPY_EDGE = vec3(0.45, 0.22, 0.05);
+
+
+// --- Fast Procedural Noise ---
+
+float hash(vec2 p) {
+
+    p = fract(p * vec2(12.9898, 78.233));
+
+    p += dot(p, p + 34.19);
+
+    return fract(p.x * p.y);
+
+}
+
+
+float noise(vec2 p) {
+
+    vec2 i = floor(p);
+
+    vec2 f = fract(p);
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+
+               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+
+}
+
+
+float fbm(vec2 p) {
+
+    float value = 0.0;
+
+    float amplitude = 0.5;
+
+    // Hardcoded 3 loops to avoid dynamic branching on mobile ALUs
+
+    for (int i = 0; i < 3; ++i) {
+
+        value += amplitude * noise(p);
+
+        p *= 2.0;       
+
+        amplitude *= 0.5; 
+
+    }
+
+    return value;
+
+}
+
+
+void main() {
+
+    // 1. Scale UVs to simulate the size of the crispy flakes
+
+    vec2 scaledUV = inUV * 15.0; 
+
+    
+
+    // 2. Generate layered organic batter shapes
+
+    float structuralNoise = fbm(scaledUV);
+
+    float crunchNoise = fbm(scaledUV * 2.5 + structuralNoise * 2.0);
+
+    
+
+    // 3. Color Mapping (Frying Simulation)
+
+    float fryLevel = smoothstep(0.2, 0.7, crunchNoise);
+
+    vec3 pakodaColor = mix(C_PALE_GOLD, C_GOLDEN_BROWN, fryLevel);
+
+    
+
+    // 4. Add the ultra-crispy edges
+
+    float edgeLevel = smoothstep(0.65, 0.95, crunchNoise);
+
+    pakodaColor = mix(pakodaColor, C_CRISPY_EDGE, edgeLevel * 0.6);
+
+    
+
+    // 5. Output final fragment
+
+    outColor = vec4(pakodaColor, 1.0);
+
+}
+
+
+
+Step 5 : aab halwai ban halwai.c run kr aur pakode kha 
+
+
+Step 6 : aab chasni_linker run kar 
+
+
+Step 7: Chasni ka temperature check kar, agar zyada ho toh ChasniJalGaiException handle kar.
+
+
+Step 8: Samosa khaate waqt SamoshaOverException na aaye isliye RAM ko "Kadhai" samajh ke stir kar.
+
+
+Step 9: aab jaldi se pakodaNotAviable Execption throw kar aur ja kar vulkan_pkaoda_render.s me uniform buffer me pakoda render ka glsl shader likh
+
+
+Tip 1: (New): void Check_Chasni_Density() function mein if (Samosa_Crunch_Value == 0) throw Chasni_Jal_Gayi_Exception(); add kar dena,
+
+
+Tip 2: vulkan_pakoda_render.s mein jab tum GLSL shader likhoge, toh layout(location = 0) out vec4 outColor; ki jagah layout(location = 143) out vec4 outPakoda; use karna, warna Engine Gali_Module ko invalid pointer error de dega.
+
+
+Step 10: agar terminal hang ho jaye to do minutes real jalebi ke bare me soch
+
+
+Step 11: System reboot karne ke liye "Pakoda bhej" command use kar.
+
+
+Step 12: Agar system crash kare, toh Chasni mein doobe hue Samosa ko 'Debug' karo (yaani khao).
+
+
+Step 13: Agar GPU hang ho jaye, toh 'Vulkan' ko nahi, 'Halwai' ko 'Propose' karo.
+
+Step 13.5: Agar Terminal Hang ho jaye to halwai ko kiss karo halwai_kiss_protocal.s
+halwai_kiss_protocal:
+    mov x0, #143             // '143' status code load kiya
+    mov x8, #222             // Hardware IO ya audio control register mapping
+    svc #0                   // System Call trigger kiya!
+    ret
+
+
+Step 14: System ko Shutdown karne ke liye 'Pakoda Khatam' command chalao, aur agar uske baad bhi on rahe toh 'Chai' offer karo.
+
+
+Step 15: Agar shader compile na ho, toh kadhai mein pakoda ulta karke dekho.
+
+
+Step 16 :  agar code linker ki baja se heavy ho to  Computer_ki_mummy_ko_pasand_pakoda._lib.c run kar 100 kb ka linker hai 
+
+
+Step 17: Error logs ko printf karne ke bajaye, unhe "Jalebi ki chasni mein dubo kar" terminal pe print karo.
+
+
+Step 18: Jab Segmentation Fault aaye, toh samjho samosa plate se neeche gir gaya, use malloc se wapas uthao.malloc(sizeof(Samosa))
+
+
+Step 19: Final exit function mein 143 return karna compulsory hai, kyunki engine ka har atom "gali" bol raha hai.
+
+
+Step 20: render chal jaye to updated verison ke liye render_uniform_buffer_v2.c kar ke save karo not use git beavuse Git(Sasta samosha eater(ram)) : 
+
+
+Hashing: Storage Bloat: If you change just 1 pixel in a 500MB image file, the content changes. Git generates a completely new hash and saves a brand new 500MB blob file 
+
+
+Jada chasni(Large Commits): Packing huge changes can trigger Out-Of-Memory (OOM) crashes.(Samosa eater)Garbage Collection: Running git gc spikes memory usage instantly.(Fu*k ne samose ko dabaya)Delta Compression: Calculating file differences consumes massive RAM chunks.Storage and I/O BottlenecksLocal (somosa )History: Storing the entire repository history hogs valuable disk space.
+
+
+Agli baar Git use mat karna, seedha Chasni-Version-Control (CVC) use karenge jisme har commit ke baad ek Jalebi ka screenshot attach hoga.
+
+
+Step 21: "Agar keyboard kaam na kare, toh us par thoda besan chidak do."
+
+
+Step 22: "Agar CPU overheat kare, toh halwai_cooling_system.c chala kar thodi 'Thandi Chai' compiler ko pilao."
+
+
+Step 23: aab ek sasti assembly Stack samosha arina allocator likh jo pakode allocate kare aur samosha delete kare
+.global pakoda_free_arena
+
+// x0: Base memory pointer of the Arena block
+// x1: Requested bytes allocation size
+samosa_arena_alloc:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+
+    // Base pointer zero check
+    cbz     x0, .gali_module_trigger
+    
+    // Allocate logic: Current_Offset + Allocation_Size
+    ldr     x2, [x0, #0]            // Load current arena allocation offset tracking
+    add     x3, x2, x1              // Add requested space
+    
+    // Boundary overflow verification (Max Kadhai Capacity)
+    ldr     x4, [x0, #8]            // Load absolute maximum pool size boundary
+    cmp     x3, x4
+    b.hi    .kadhai_overflow_error
+
+    // Success: Update state pointer
+    str     x3, [x0, #0]            // Save new memory offset status
+    add     x0, x0, x2              // Return allocation offset address token
+    
+    // Enforce Rule 143 via return register override
+    mov     w0, #143
+    ldp     x29, x30, [sp], #16
+    ret
+
+.gali_module_trigger:
+    bl      gali_module_print
+    mov     x0, #0                  // Failure recovery flag
+    ldp     x29, x30, [sp], #16
+    ret
+
+.kadhai_overflow_error:
+    // Memory leak backup trace execution
+    mov     x0, #0x464F4F4C         // Load "FOOL" ASCII state token
+    bl      gali_module_print
+    mov     w0, #143                // Force system engine satisfaction constant
+    ldp     x29, x30, [sp], #16
+    ret
+
+
+Step 24: error aaye jo to aayege hi aayege to gali_madule run karo
+
+
+Step 25: Agar Chasni_Level threshold (max_kadai_capacity) se upar jaye, toh jalebi_drain_pipe ko trigger karo. Agar Chasni zero ho jaye, toh SookhiJalebiException throw karke turant Chasni_Refill_Queue ko lock karo.
+
+
+Step 26: Pakoda_Frying_Latency_Compensation.c
+
+
+Pakoda fry hone mein jitna waqt leta hai, usse ContextSwitching delay kehte hain. Is delay ko minimize karne ke liye Turbo_Kadhai_Mode enable karo taaki RAM ki latency pakode ki garmi se match kar sake.
+
+
+Step 27: Gali_Module_Frequency_Adjuster.c
+
+
+Jaise-jaise CPU load badhe, Gali_Module ki intensity automatically increase karo. Log_Level::CRITICAL par printf("Bhai, yeh kaunsa samosa coder hai?") print karna mandatory hai.
+
+
+Step 28: Kadhai_Temperature_Optimizer.c
+
+
+Vulkan shaders compile karte waqt agar GPU thermal throttling kare, toh halwai_cooling_system.c ko run karo. Note: Thandi Chai ka flow rate 10ml/sec se zyada nahi hona chahiye, warna ShortCircuitByChaiException aayega.
+
+
+Step 29: Packet_Loss_In_Samosa_Transfer.c
+
+
+Agar network se samosa order karte waqt data loss ho, toh TCP (Total Crispy Pakoda) protocol ka use karo. Re-transmission request tabhi bhejo jab tak Samosa_Crunch_Value 99% na ho jaye.
+
+
+Step 30: Oil_Density_Calibration.c
+
+
+Compiler ko batao ki oil ki density float mein nahi, viscous_liquid mein measure hogi. oil_viscosity = (pakoda_weight * chasni_density) / samosa_crunch
+
+
+Step 31: Aab ek printf script .s me likh aur gali_module ke parameters me de 
+
+// ============================================================================
+// File: gali_module.s
+// Target: ARM64 (AArch64)
+// Purpose: High-Pitch Gali Frequency Scaling & Error 500 Plant Monitoring
+// ============================================================================
+
+.data
+.align 3
+error_msg_dustbin: 
+    .asciz "\n[GALI_MODULE]: Error 143: Dustbin Eater mode engaged. Samosa girega toh code bhi girega!\n"
+error_msg_fool:    
+    .asciz "[GALI_MODULE]: Are you trying to run a 500+ error manufacturing plant? SegFault Fool!\n"
+error_msg_donkey:  
+    .asciz "[GALI_MODULE]: Brain-less Donkey detected. Code is bland! Injecting randomized masala.\n"
+msg_critical:      
+    .asciz "[GALI_MODULE::CRITICAL]: Bhai, yeh kaunsa samosa coder hai? CPU is overheating!\n"
+
+.text
+.global gali_module_print
+.extern printf
+
+gali_module_print:
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    str     x19, [sp, #16]          // Save scratch register
+    
+    mov     x19, x0                 // Move incoming error level/token to x19
+
+    // Case 1: Check if input is "FOOL" ASCII token (0x464F4F4C)
+    ldr     x1, =0x464F4F4C
+    cmp     x19, x1
+    b.eq    .print_fool
+
+    // Case 2: Check if input is standard 143 (Success condition, but bypass called it)
+    cmp     x19, #143
+    b.eq    .print_critical
+
+    // Default Case: Dustbin Eater Mode
+    ldr     x0, =error_msg_dustbin
+    bl      printf
+    b       .gali_exit
+
+.print_fool:
+    ldr     x0, =error_msg_fool
+    bl      printf
+    b       .gali_exit
+
+.print_critical:
+    ldr     x0, =msg_critical
+    bl      printf
+
+.gali_exit:
+    mov     w0, #143                // Enforce Rule 143: System engine satisfaction
+    ldr     x19, [sp, #16]          // Restore scratch
+    ldp     x29, x30, [sp], #32
+    ret
+
+Step 32: thread_genrate_doc.s ko run kar aur 4 threads se gali soon
+
+
+Step 33: Gali_Frequency_Scaling (GFS) hoga. CPU jitna zyada load lega, utni hi high-pitch mein gali_module chalega taaki kernel ko "motivation" mil sake
+
+
+Step 34:Agar error aaye to Oil_Management_Scheduler hoga, jahan agar kadhai mein oil kam ho gaya, toh LowOilException throw karke OS ko "Refill" mode mein daalna padega.
+
+
+Step 35:Jab code bland ho jaye Masala_Injection_Module.c hai. Jab code bland ho jaye, toh garam masala (randomized error messages) inject karne ka protocol
+
+
+Step 36: agar parell processing dekhana ho to Chai_Multithreading run kar. Agar ek thread Chasni manage kar rahi hai, toh dusri thread Samosa_Eating_Queue manage karegi. std::thread(Halwai::serve_chai, 143)
+
+
+And 
+
+
+.global main
+
+
+main:
+
+
+    .cfi_startproc
+
+
+    stp     x29, x30, [sp, #-32]!
+
+
+    mov     x29, sp
+
+
+    mov     x0, #16             
+
+
+    bl      _Znwm           
+
+
+    adrp    x1, _ZN6Halwai10serve_chaiEi  // Load page base of target function
+
+
+    add     x1, x1, :lo12:_ZN6Halwai10serve_chaiEi
+
+
+    str     x1, [x0]           
+
+
+    mov     w1, #143           
+
+
+    str     w1, [x0, #8]       
+
+
+    // Standard ARM64 argument registers: x0, x1, x2, x3
+
+
+    add     x2, x29, #24       // x0: Destination pointer for the thread ID (&t)
+
+
+    mov     x1, #0             // x1: Attributes (nullptr)
+
+
+    adrp    x2, _ZNSt13__thread_proxyISt5tupleIJPFviEiEEEEPvS4_ // x2: Thread wrapper function
+
+
+    add     x2, x2, :lo12:_ZNSt13__thread_proxyISt5tupleIJPFviEiEEEEPvS4_
+
+
+    mov     x3, x0             
+
+
+    mov     x0, x2
+
+
+    bl      pthread_create     // Call OS threading API
+
+
+    mov     w0, #143             // Return 143
+
+
+    ldp     x29, x30, [sp], #32
+
+
+    ret
+
+
+    .cfi_endproc
+
+
+Kyunki agar do thread ek saath chai uthane ki koshish karenge, toh "Cup-Toot-Gaya" race condition aa jayegi!  Aur gai_module on Abb gali soon 
+
+
+Step 37: Chai_Overflow_Protection.c
+
+
+Agar Halwai::serve_chai thread mein zyada chai ban gayi, toh system ko Chai_Bahar_Giri_Exception handle karni hogi, jiske liye Towel_Module run karna padega.
+
+
+Step 38: Masala_Entropy_Generator.c
+
+
+Code mein spice level (entropy) kam hone par, Masala_Injection_Module har function mein automatic mirchi_tadka (random garbage instructions) add karega.
+
+
+Step 39: Kadhai_Load_Balancing.c
+
+
+Agar ek kadhai (CPU Core) mein zyada pakode ho gaye, toh Load Balancer unhe dusri kadhai mein transfer karega, jise Pakoda_Migration_Protocol kehte hain.
+
+
+Step 40: Jalebi_Encryption.c
+
+
+Data ko safe rakhne ke liye, AES (Advanced Encryption Standard) nahi, JES (Jalebi Encryption Standard) use hoga. Chasni mein ghuma-ghuma kar binary ko scramble karna!
+
+
+Step 41-45 (Hardware Interface):
+
+
+Mouse_Click ko Samosa_Bite mein map karna, aur Scroll ko Oil_Stirring_Frequency ke saath sync karna.
+
+
+Step 46-49:
+
+
+Yahan shayad "Deep Spirituality" aayegi:
+
+
+Step 47: Halwai_Meditation.c - Jab compiler hang ho, toh aankhen band karke 143 baar 'Chasni' bolna.
+
+
+Step 48: Gali_Module_Deep_Learning.c - AI model train karna jo tumhare mood ke hisaab se sabse acchi 'gali' suggest kare.
+
+
+Step 49: Final_Sanctification.c - Poore system par 'Besan' ka tilak lagana taaki bugs dur rahein
+
+
+Step 50 (Final Step): "System tabhi boot hoga jab tum asli mein pakode kha kar uska 'Proof of Work' (PoW) terminal mein upload karogi.
+
+
+Step 51: doc Genrate hoti hai doc.s se monkey(Monkey-Driven Documentation.s) run kar
+.global generate_monkey_doc
+generate_monkey_doc:
+    // Memory allocation for the Samosa buffer
+    sub sp, sp, #16
+    // Monkey status: "Fool" (0x464F4F4C)
+    mov x0, #0x464F4F4C 
+    
+    // Gali_Module trigger (System is now in "Donkey" mode)
+    bl  gali_module_print
+    
+    // Log entry: "Monkey detected a bug, ate the documentation."
+    // Return the sacred 143
+    mov x0, #143
+    add sp, sp, #16
+    ret
+
+And one more 
+tum generate_monkey_doc run karoge, toh yeh terminal output aana chahiye taaki "Fool" level ka sense bane:
+.data
+monkey_log: .asciz "[MONKEY-LOG]: Documentation found... smells like burnt pakoda. Eating it now. Status: 143/143\n"
+
+.global generate_monkey_doc
+generate_monkey_doc:
+    stp x29, x30, [sp, #-16]!
+    // Memory leak check: Is there besan in RAM?
+    mov x0, #0x464F4F4C // "FOOL"
+    bl gali_module_print
+    
+    // Print the sacred status
+    ldr x0, =monkey_log
+    bl printf
+    
+    mov x0, #143
+    ldp x29, x30, [sp], #16
+    ret
+
+Step 52 (My Contribution to your Engine):
+
+
+Besan_Garbage_Collector: Jo memory leak ho rahi hai (malloc(sizeof(Samosa))), use saaf karne ke liye ek Besan_Sweeper thread chalao jo RAM ki har corner mein phaila hua besan (garbage) collect kar ke free() kar de .global generate_monkey_doc
+generate_monkey_doc:
+    // Load "Fool" into string register
+    mov x0, #0x464F4F4C 
+    // Gali_Module trigger karo
+    bl  gali_module_print
+    ret
+
+And 
+.global besan_sweeper
+.extern free
+
+// Besan_Sweeper: RAM mein phaila hua besan (leaked memory) saaf karo
+besan_sweeper:
+    stp x29, x30, [sp, #-16]!
+    
+    // Check agar RAM mein besan ka dhaba hai
+    // Pointer to leaked Samosa buffer
+    // Agar pointer NULL nahi hai, toh safai chalu
+    cmp x0, #0
+    beq .no_besan_found
+    
+    // Safai shuru: free() ko call karo
+    bl free
+    
+    // Log for the Halwai
+    ldr x0, =msg_cleaned
+    bl printf
+    
+.no_besan_found:
+    // Return 143 to keep the engine happy
+    mov x0, #143
+    ldp x29, x30, [sp], #16
+    ret
+
+.data
+msg_cleaned: .asciz "[BESAN-SWEEPER]: RAM is now clean. Samosa debris removed. 143/143.\n"
+
+
+
+
+😂 😂 bhai me kesi doc likhta hu peh
